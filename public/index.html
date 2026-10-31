@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#101b1b">
+  <meta name="description" content="A strategy tycoon about building a real network business. From garage to seabed.">
+  <title>From garage to seabed</title>
+  <link rel="icon" href="./favicon.svg" type="image/svg+xml">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="stylesheet" href="./css/main.css">
+  <link rel="stylesheet" href="./css/ui.css">
+  <link rel="stylesheet" href="./css/responsive.css">
+  <link rel="stylesheet" href="./css/animations.css">
+</head>
+<body>
+  <a class="skip-link" href="#scene-panel">Skip to operation</a>
+  <header class="topbar">
+    <a class="brand" href="#scene-panel" aria-label="Go to your operation"><span class="brand-icon" aria-hidden="true">▤</span><span><strong data-game-title></strong><small>FROM GARAGE TO SEABED</small></span></a>
+    <div class="time-controls" role="group" aria-label="Simulation speed">
+      <button id="pause" data-action="pause" title="Pause or resume the simulation (Space)" aria-label="Pause simulation">Ⅱ</button>
+      <button data-action="speed" data-value="1" aria-pressed="true" title="Normal game speed (1)">1×</button>
+      <button data-action="speed" data-value="2" aria-pressed="false" title="Twice normal speed (2)">2×</button>
+      <button data-action="speed" data-value="5" aria-pressed="false" title="Five times normal speed (3)">5×</button>
+    </div>
+    <button class="menu-button" data-action="menu" title="Save, import, settings, help and reset (M)"><span aria-hidden="true">☰</span><span>Menu</span></button>
+  </header>
+  <section class="stats" aria-label="Business overview">
+    <div class="stat" title="Money available to buy hardware and cover all operating costs"><span class="eyebrow">CASH RESERVE</span><strong id="cash">$180</strong><small id="cash-note">Your next move starts here</small></div>
+    <div class="stat" title="Your hourly revenue minus power, rent, network costs and loan repayments"><span class="eyebrow">PROFIT / GAME HOUR</span><strong id="profit">—</strong><small id="profit-note">After running costs</small></div>
+    <div class="stat" title="Trust grows slowly with reliable service and falls quickly after failures"><span class="eyebrow">REPUTATION</span><strong id="reputation">24<span class="unit"> / 100</span></strong><small id="rep-note">A name worth building</small></div>
+    <div class="stat extra-stat" hidden title="Lifetime delivered service, including an initial stability allowance"><span class="eyebrow">SERVICE UPTIME</span><strong id="uptime">—</strong><small>Customer promises matter</small></div>
+    <div class="stat extra-stat" hidden title="Occupied capacity compared with installed server capacity"><span class="eyebrow">CAPACITY</span><strong id="capacity">—</strong><small id="power">Power is billed every hour</small></div>
+  </section>
+  <main class="workspace">
+    <aside id="build-panel" class="panel tab-panel" data-tab="build" aria-labelledby="build-title">
+      <div class="panel-heading"><div><span class="eyebrow">MAKE ROOM TO GROW</span><h2 id="build-title">Build your business</h2></div><span class="section-icon" aria-hidden="true">↗</span></div>
+      <details open class="panel-section"><summary>Server hardware <span>＋</span></summary><div id="server-cards"></div></details>
+      <details class="panel-section" open><summary>Business continuity <span>＋</span></summary><div id="protection-cards"></div></details>
+      <details id="infrastructure-section" class="panel-section" hidden open><summary>Network & location <span>＋</span></summary><p class="muted">These choices last for this run. Compare before committing.</p><div id="infrastructure-cards"></div></details>
+      <details id="loans-section" class="panel-section" hidden><summary>Growth financing <span>＋</span></summary><div id="loan-cards"></div></details>
+    </aside>
+    <section class="center-column">
+      <section id="scene-panel" class="scene-panel" aria-labelledby="scene-title" tabindex="-1">
+        <div class="scene-header"><div><span class="eyebrow" id="tier-label">CHAPTER 01 / 06</span><h1 id="scene-title">The garage</h1><p id="scene-subtitle">A rented line. A very real ambition.</p></div><span class="status-pill" id="service-status">● Systems online</span></div>
+        <div id="scene" class="scene" role="img" aria-label="Your network operation"></div>
+        <div class="scene-foot"><span id="scene-inventory">One server. Endless possibilities.</span><span class="mono" id="clock">DAY 01 · 00:00</span></div>
+      </section>
+      <section class="ledger panel" aria-labelledby="ledger-title"><div class="panel-heading"><div><span class="eyebrow">THE BOTTOM LINE</span><h2 id="ledger-title">Small decisions. Real consequences.</h2></div></div><p id="money-sentence" class="money-sentence"></p><button id="details-toggle" class="text-button" data-action="details" aria-expanded="false" aria-controls="money-details" title="Reveal the exact income and cost calculation">Show details ↓</button><div id="money-details" hidden></div><p id="advisor" class="advisor"></p></section>
+      <section id="events-panel" class="panel tab-panel events-panel" data-tab="events" aria-labelledby="events-title"><div class="panel-heading"><div><span class="eyebrow">YOUR OPERATOR'S LOG</span><h2 id="events-title">What’s happening</h2></div><span class="live-dot" aria-hidden="true"></span></div><div id="event-feed" role="log" aria-live="polite" aria-relevant="additions"></div></section>
+    </section>
+    <aside id="customers-panel" class="panel tab-panel" data-tab="customers" aria-labelledby="customers-title"><div class="panel-heading"><div><span class="eyebrow">PEOPLE KEEP THE LIGHTS ON</span><h2 id="customers-title">Your customers</h2></div><span class="section-icon" aria-hidden="true">◎</span></div>
+      <div class="pricing-box" id="pricing-box"><div class="row"><label for="price">Your pricing</label><output id="price-output" for="price">100% of market</output></div><input id="price" type="range" aria-describedby="price-preview"><div class="range-labels"><span>More accessible</span><span>Higher margin</span></div><p id="price-preview" class="muted"></p><p class="fine">Existing contracts reprice immediately. Higher rates reduce new applicant acceptance.</p></div>
+      <div class="panel-section"><div class="row"><h3>Find your next customer</h3><span class="tag" id="customer-count">3 active</span></div><div id="customer-cards"></div></div>
+      <div class="panel-section"><h3>Hosting roster</h3><div id="customer-roster"></div></div>
+      <div class="operator-tip"><span aria-hidden="true">✦</span><p>You don’t need the most servers. You need the right balance.</p></div>
+    </aside>
+    <section id="goals-panel" class="panel tab-panel goals-panel" data-tab="goals" aria-label="Progression roadmap"><div class="panel-heading"><div><span class="eyebrow">THE ROAD TO THE SEABED</span><h2>Six chapters. One network.</h2></div></div><div id="roadmap"></div></section>
+  </main>
+  <nav class="bottom-tabs" aria-label="Business panels"><button data-action="tab" data-value="build" aria-pressed="true" title="Open Build (B)">▤<span>Build</span></button><button data-action="tab" data-value="customers" aria-pressed="false" title="Open Customers (C)">◎<span>Customers</span></button><button data-action="tab" data-value="events" aria-pressed="false" title="Read event outcomes and their causes">≋<span>Events</span></button><button data-action="tab" data-value="goals" aria-pressed="false" title="See all tier goals and locked future chapters">↗<span>Goals</span></button></nav>
+  <footer class="goal-banner" id="goal-banner"><div class="goal-copy"><span class="eyebrow" id="goal-caption">YOUR NEXT CHAPTER</span><strong id="goal-title">Grow into a Small Rack</strong><span id="goal-hint">Build a reserve. Earn their trust.</span></div><div class="goal-progress"><div class="progress-track" role="progressbar" aria-label="Next chapter progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="goal-fill"></span></div><small id="goal-fraction"></small></div><button class="text-button" data-action="goals" title="Review the exact requirements for the next chapter">View goals ↗</button></footer>
+  <div id="toasts" class="toasts" role="status" aria-live="polite"></div>
+  <div id="tutorial" class="tutorial" hidden role="region" aria-label="Getting started tutorial"><span class="eyebrow" id="tutorial-step"></span><h2 id="tutorial-title"></h2><p id="tutorial-text"></p><div class="row"><button class="text-button" data-action="tutorial-skip" title="Skip this tutorial; help remains in Menu">Skip tutorial</button><button class="primary" data-action="tutorial-next" title="Continue to the next getting-started step">Next →</button></div></div>
+  <div id="modal-layer" class="modal-layer" hidden><section class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" tabindex="-1"><div class="modal-top"><span class="eyebrow" id="modal-kicker"></span><button id="modal-close" data-action="close-modal" title="Close this window" aria-label="Close window">×</button></div><h2 id="modal-title"></h2><div id="modal-body"></div></section></div>
+  <noscript>This game needs JavaScript enabled. All game files are local; no external services are required.</noscript>
+  <script type="module" src="./js/main.js"></script>
+</body>
+</html>
