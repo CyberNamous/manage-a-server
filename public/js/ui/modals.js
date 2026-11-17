@@ -6,6 +6,8 @@ import { LOANS, LENDING } from '../data/loans.js';
 import { loanQuote } from '../systems/loanSystem.js';
 import { goalProgress } from '../systems/unlocks.js';
 import { affectedText } from '../systems/maintenance.js';
+import { decisionInfo } from '../systems/eventSystem.js';
+import { RESPONSE_RULES } from '../data/responses.js';
 import { serverDetailHTML, serverTitle } from './hardwareView.js';
 import { financeHTML, reputationHTML } from './financeView.js';
 import { money, escapeHTML, goalNumber } from './format.js';
@@ -31,10 +33,19 @@ export function closeModal(force = false) {
   const dismiss = onDismiss; onDismiss = null; dismiss?.();
   if (previousFocus?.isConnected) previousFocus.focus({ preventScroll: true });
 }
+// Plain-language cost, odds and consequences for one choice. Figures come from the same functions that resolve it.
+function decisionFacts(e, r) {
+  const i = decisionInfo(e, r), loan = r.id === 'emergency' ? ` (plus a ${money(LENDING.emergencyPrincipal)} loan)` : '';
+  if (i.effect === 'opportunity') return `Fee ${money(i.fee)}${loan}.`;
+  const worse = Math.round((RESPONSE_RULES.failedDamageScale - 1) * 100);
+  const line1 = `Fee ${money(i.fee)}${loan} · ${i.damage ? `expected damage ${money(i.damage)}` : 'no direct damage'}${r.failureChance ? ` · ${Math.round(i.success * 100)}% chance to work` : ''}`;
+  const failure = r.failureChance ? ` If it fails: ${i.worst > i.damage ? `damage up to ${money(i.worst)}` : `the effect lasts ${worse}% longer`}${i.escalates ? ' and a follow-up incident is scheduled' : ''}.` : (r.id === 'ignore' && i.escalates ? ' Left unresolved, a follow-up incident is scheduled.' : '');
+  return `${line1}.${failure}`;
+}
 export function eventModal(s) {
   const e = s.activeEvent;
   const special = e.trigger.id === 'cablefund' ? `<p>A non-declining response can commit an additional ${money(RARE_EFFECTS.consortiumCost)} research pledge if you can afford it. This is not cable construction.</p>` : '';
-  showModal(e.trigger.name.replace(/^./, ch => ch.toUpperCase()), `<p>${escapeHTML(e.text)}</p>${e.chain ? '<p class="warning">This is an escalation of a previously unresolved warning.</p>' : ''}<p class="fine"><strong>Affected:</strong> ${escapeHTML(affectedText(s, e))}</p><p class="fine">Simulation paused. Severity: ${e.severity.name.toLowerCase()}. Time resumes after your decision unless you manually paused.</p>${special}<div class="event-choices">${e.responses.map(r => `<button class="choice-button" data-action="respond" data-value="${r.id}" title="${escapeHTML(r.hint)}"><span class="choice-cost">${money(r.cost)}</span><strong>${escapeHTML(r.name)}</strong><small>${escapeHTML(r.hint)}</small></button>`).join('')}</div>`, { kind: 'event', locked: true, kicker: `${e.isRare ? 'RARE OPPORTUNITY' : 'DECISION REQUIRED'} · ${e.severity.name.toUpperCase()}` });
+  showModal(e.trigger.name.replace(/^./, ch => ch.toUpperCase()), `<p>${escapeHTML(e.text)}</p>${e.chain ? '<p class="warning">This is an escalation of a previously unresolved warning.</p>' : ''}<p class="fine"><strong>Affected:</strong> ${escapeHTML(affectedText(s, e))}</p><p class="fine">Simulation paused. Severity: ${e.severity.name.toLowerCase()}. Time resumes after your decision unless you manually paused.</p>${special}<div class="event-choices">${e.responses.map(r => `<button class="choice-button" data-action="respond" data-value="${r.id}" title="${escapeHTML(r.hint)}"><span class="choice-cost">${money(r.cost)}</span><strong>${escapeHTML(r.name)}</strong><small>${escapeHTML(r.hint)}</small><small>${escapeHTML(decisionFacts(e, r))}</small></button>`).join('')}</div>`, { kind: 'event', locked: true, kicker: `${e.isRare ? 'RARE OPPORTUNITY' : 'DECISION REQUIRED'} · ${e.severity.name.toUpperCase()}` });
 }
 export function menuModal(s, theme) {
   showModal('A moment to plan.', `<div class="menu-grid"><button data-action="save" title="Save this run to this device">Save game</button><button data-action="load" title="Reload your last local save">Load saved game</button><button data-action="export" title="Create a portable copyable save code">Export save code</button><button data-action="import" title="Replace your run with a validated save code">Import save code</button><button data-action="help" title="Read the rules and strategy basics">How to play</button><button class="danger" data-action="reset" title="Start over after a confirmation">Reset game</button></div><h3>Appearance</h3><div class="theme-row">${['system','dark','light'].map(t=>`<button data-action="theme" data-value="${t}" aria-pressed="${theme === t}" title="Use ${t} color theme">${t[0].toUpperCase()+t.slice(1)}</button>`).join('')}</div><p class="fine">${GAME_TITLE} | ${GAME_UPDATE}: quality of life, visual polish, hardware upgrades and server maintenance.</p><p class="fine">Autosaves every ${AUTOSAVE_MS / 1000} seconds and after important actions. Progress stays on this device unless you export it.</p><p class="fine">The simulation is paused while the operator desk is open.</p>`, { kind: 'menu' });
