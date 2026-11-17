@@ -7,10 +7,13 @@ import { purchaseServer, purchaseProtection } from './systems/capacity.js';
 import { signCustomer, setPrice, chooseInfrastructure } from './systems/economy.js';
 import { takeLoan, repayLoan } from './systems/loanSystem.js';
 import { resolveEvent } from './systems/eventSystem.js';
-import { createRenderer } from './ui/render.js';
+import { performMaintenance, installUpgrade, serviceAll } from './systems/maintenance.js';
+import { onSignal } from './systems/signals.js';
+import { createRenderer, setFeedFilter } from './ui/render.js';
+import { queueSceneFx } from './ui/scene.js';
 import { setupLayout, selectTab } from './ui/layout.js';
 import { setupTooltips } from './ui/tooltips.js';
-import { setupModalKeyboard, showModal, closeModal, modalMode, eventModal, menuModal, goalsModal, helpModal, infrastructureModal, loanModal, toast } from './ui/modals.js';
+import { setupModalKeyboard, showModal, closeModal, modalMode, eventModal, menuModal, goalsModal, helpModal, infrastructureModal, loanModal, serverModal, financeModal, reputationModal, toast } from './ui/modals.js';
 import { escapeHTML } from './ui/format.js';
 let theme='system', warnedStorage=false, tutorialIndex=-1;
 const loaded=loadGame();
@@ -25,14 +28,24 @@ function applyTheme(){
 applyTheme();matchMedia('(prefers-color-scheme: light)').addEventListener?.('change',applyTheme);
 document.title=GAME_TITLE;document.querySelectorAll('[data-game-title]').forEach(e=>e.textContent=GAME_TITLE);
 document.querySelectorAll('.stat[title]').forEach(e=>e.tabIndex=0);
+// Visual feedback: the simulation emits signals; this is the only place that decides how they look.
+const FX={purchase:'fx-purchase',upgrade:'fx-upgrade',maintenance:'fx-service',maintenanceDone:'fx-service',fault:'fx-fault',condition:'fx-fault'};
+function flash(className){const panel=document.getElementById('scene-panel');panel.classList.remove(className);void panel.offsetWidth;panel.classList.add(className);setTimeout(()=>panel.classList.remove(className),1300);}
+onSignal((type,detail)=>{
+  if(detail.uid!==undefined)queueSceneFx(type,detail.uid);
+  const fx=FX[type]||(type==='incident'&&detail.outcome==='resolved'?'fx-resolved':'');if(fx)flash(fx);
+  if(type==='maintenanceDone')toast(`${detail.label}: ${String(detail.task).toLowerCase()} complete. Back online.`,false,'success');
+  if(type==='condition'&&detail.band==='critical')toast('A server is in critical condition. Open it from Your servers.',true);
+});
 setupLayout();setupTooltips();setupModalKeyboard();
 const render=createRenderer(state,()=>Boolean(modalMode()));
 function save(announce=false){const result=saveGame(state);if(!result.ok&&!warnedStorage){toast(result.message,true);warnedStorage=true;}else if(announce)toast(result.message,!result.ok);return result;}
-function finish(result){toast(result.message,!result.ok);if(result.ok){addFeed(state,result.message,'Why: this was your business decision. Its income, operating costs, and risks now apply.');save();}render(1000);}
+function finish(result){toast(result.message,!result.ok);if(result.ok){addFeed(state,result.message,result.why||'Why: this was your business decision. Its income, operating costs, and risks now apply.','neutral',result.detail||{cat:'decision',outcome:'info'});save();}render(1000);}
 function hideTutorial(){document.getElementById('tutorial').hidden=true;document.querySelectorAll('.tutorial-highlight').forEach(e=>e.classList.remove('tutorial-highlight'));}
 const tutorialSteps=[
   {title:'Your first packet.',text:'You own one used server and host three hobby sites. These three numbers tell you how the business is doing.',selector:'.stats'},
   {title:'Build with a reason.',text:'Buy a Budget server for a quick expansion, or save for Standard. Every server uses power, even while empty.',selector:'#server-cards',tab:'build'},
+  {title:'Look after your hardware.',text:'Open a server under Your servers to inspect it, service it or install upgrades. Servers wear out over time, and maintenance briefly takes one offline.',selector:'#fleet-section',tab:'build'},
   {title:'People pay the bills.',text:'Sign a hobby site using spare capacity. Only accepted applications incur the onboarding fee. More demanding clients arrive in later chapters.',selector:'#customer-cards',tab:'customers'},
   {title:'Find your price.',text:'Move the pricing slider for a live profit preview. A high rate earns more per client but turns away more applicants.',selector:'#pricing-box',tab:'customers'},
   {title:'Earn the next chapter.',text:'Meet every goal together to unlock your Small Rack. Nothing is unlocked by waiting alone. Open View goals for exact targets.',selector:'#goal-banner',tab:'goals'},
@@ -62,6 +75,13 @@ async function action(name,value){
     case 'commit-network':case 'commit-location':{const result=chooseInfrastructure(state,name.replace('commit-',''),value);closeModal(true);finish(result);break;}
     case 'loan':loanModal(value);break;
     case 'commit-loan':{const result=takeLoan(state,value);closeModal(true);finish(result);break;}
+    case 'server':serverModal(state,Number(value));break;
+    case 'maintain':case 'upgrade':{const [index,id]=String(value).split(':');const result=name==='maintain'?performMaintenance(state,Number(index),id):installUpgrade(state,Number(index),id);finish(result);serverModal(state,Number(index),{action:name,value});break;}
+    case 'service-all':finish(serviceAll(state));break;
+    case 'jump':{const target=document.getElementById(value);target?.scrollIntoView({block:'start',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});break;}
+    case 'finance':financeModal(state);break;
+    case 'reputation':reputationModal(state);break;
+    case 'feed-filter':setFeedFilter(value);break;
     case 'repay':finish(repayLoan(state,Number(value)));break;
     case 'respond':{const result=resolveEvent(state,value);if(result.ok)closeModal(true);toast(result.message,!result.ok);save();break;}
     case 'tab':selectTab(value,true);break;
@@ -86,12 +106,15 @@ async function action(name,value){
   render(1000);
 }
 document.addEventListener('click',event=>{const button=event.target.closest('button[data-action]');if(button&&!button.disabled)action(button.dataset.action,button.dataset.value);});
+function openStat(stat){const kind=stat?.dataset.open;if(kind==='finance')financeModal(state);else if(kind==='reputation')reputationModal(state);}
+document.addEventListener('click',event=>openStat(event.target.closest('.stat[data-open]')));
+document.addEventListener('keydown',event=>{if((event.key==='Enter'||event.key===' ')&&event.target.matches?.('.stat[data-open]')){event.preventDefault();openStat(event.target);}});
 document.getElementById('price').addEventListener('input',event=>{setPrice(state,event.target.value);render(1000);});
 document.getElementById('price').addEventListener('change',()=>save());
 document.addEventListener('keydown',event=>{
   if(event.ctrlKey||event.altKey||event.metaKey||event.repeat||event.target.closest('input,textarea,select,[contenteditable=true]')||modalMode())return;
   const key=event.key.toLowerCase();
-  if(key===' '){if(event.target.closest('button,summary,a'))return;event.preventDefault();action('pause');}
+  if(key===' '){if(event.target.closest('button,summary,a,[role=button]'))return;event.preventDefault();action('pause');}
   else if(['1','2','3'].includes(key))action('speed',SPEEDS[Number(key)-1]);
   else if(key==='b')selectTab('build',true);else if(key==='c')selectTab('customers',true);else if(key==='m')openDesk();
 });

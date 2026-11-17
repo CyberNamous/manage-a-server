@@ -3,6 +3,8 @@ import { BALANCE } from './data/tiers.js';
 import { state, addFeed } from './state.js';
 import { economy } from './systems/economy.js';
 import { tickReputation } from './systems/reputation.js';
+import { tickMaintenance } from './systems/maintenance.js';
+import { recordOperating } from './systems/ledger.js';
 import { tickLoans } from './systems/loanSystem.js';
 import { checkUnlocks } from './systems/unlocks.js';
 import { tickEvents } from './systems/eventSystem.js';
@@ -11,10 +13,12 @@ export function simulate(s, seconds) {
   const hours = seconds * BALANCE.gameHoursPerSecond;
   const money = economy(s);
   s.cash += money.profit * hours; s.totalEarned += money.revenue * hours;
+  recordOperating(s, money, hours); // revenue and each operating cost, recorded once, for the finance report
   s.hours += hours; s.cooldown = Math.max(0, s.cooldown - seconds);
   for (const server of s.servers) server.age += hours;
-  tickLoans(s, hours); tickReputation(s, hours);
+  tickMaintenance(s, hours); tickLoans(s, hours); tickReputation(s, hours);
   if (s.cash < BALANCE.insolvencyLimit) {
+    s.books.restructured += BALANCE.recoveryCash - s.cash; // keeps the books reconcilable with cash
     s.cash = BALANCE.recoveryCash; s.loans = []; s.reputation = Math.max(0, s.reputation - BALANCE.recoveryRepLoss);
     s.customers = s.customers.filter(client => client.id === 'hobby');
     // Recovery sheds expensive contracts, leases and excess hardware, rather than trapping the run in debt.
@@ -30,7 +34,7 @@ export function catchUp(s, elapsedSeconds) {
   const seconds = Math.min(BALANCE.offlineCapSeconds, elapsedSeconds);
   // No offline losses, aging, random incidents or loan-clock drift. A conservative hosting stipend only.
   const gain = Math.max(0, economy(s).profit) * seconds * BALANCE.gameHoursPerSecond * BALANCE.offlineProfitFraction;
-  s.cash += gain;
+  s.cash += gain; s.books.stipend += gain;
   if (gain > 0) addFeed(s, `Away reserve: $${gain.toFixed(0)}`, 'Why: at most two minutes of positive hosting profit is credited at half rate. There are no offline incidents, losses, or unattended repayments.', 'gain');
   return gain;
 }
