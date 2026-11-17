@@ -21,6 +21,12 @@ export function eventResponses(s, event) {
   const ignore = valid.find(item => item.id === 'ignore');
   return [primary, secondary, ignore].filter(Boolean).slice(0, RESPONSE_RULES.maxChoices).map(item => ({ ...item, cost: Math.ceil(event.baseCost * item.costScale) }));
 }
+// A follow-up is as severe as the incident that caused it, capped at the configured chain severity.
+// Older saved chains carry no severity and keep the previous behaviour.
+function chainSeverity(chain) {
+  const cap = SEVERITIES.find(item => item.id === EVENT_RULES.chainSeverity), original = SEVERITIES.find(item => item.id === chain.severity);
+  return original && original.scale < cap.scale ? original : cap;
+}
 export function assembleEvent(s, chain = null) {
   const regular = TRIGGERS.filter(part => eligible(s, part) && eventWeight(s, part) > 0);
   const rare = RARE_PARTS.filter(part => eligible(s, part) && !s.rareSeen.includes(part.id));
@@ -32,7 +38,7 @@ export function assembleEvent(s, chain = null) {
   const targets = TARGETS.filter(part => eligible(s, part) && part.tags.some(tag => trigger.tags.includes(tag)) && (chain || combinationAllowed(s, trigger.id, part.id)));
   if (!targets.length) return null;
   const target = pick(s, targets);
-  const severity = chain ? SEVERITIES.find(item => item.id === EVENT_RULES.chainSeverity) : pick(s, SEVERITIES, item => item.weight);
+  const severity = chain ? chainSeverity(chain) : pick(s, SEVERITIES, item => item.weight);
   const twist = pick(s, TWISTS.filter(part => eligible(s, part) && part.tags.some(tag => tag === 'any' || trigger.tags.includes(tag))));
   const scale = severity.scale * twist.scale * target.scale;
   const baseCost = Math.ceil((EVENT_RULES.damageFloor + s.customers.length * EVENT_RULES.damagePerCustomer) * scale);
