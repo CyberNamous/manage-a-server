@@ -8,7 +8,7 @@ export const EVENT_RULES = {
   damagePerCustomer: 5, damageFloor: 10, chainDelayHours: 5,
   chainSeverity: 'serious', fineRepFraction: 0.12,
   spikeDuration: 3, spikeCapacityFactor: 0.65, transitShockFactor: 1.8,
-  outcomeHistoryLimit: 40, repairFallbackChance: 0.2,
+  outcomeHistoryLimit: 60, repairFallbackChance: 0.2,
 };
 export const TRIGGERS = [
   { id: 'hardware', name: 'hardware failure', tags: ['technical'], weight: 1.2, minTier: 1, needs: 'servers', effect: 'outage' },

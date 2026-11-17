@@ -7,7 +7,7 @@ export const BALANCE = {
   reputationDemandBase: 0.76, reputationDemandFactor: 0.006,
   reputationGain: 0.85, reputationLoss: 13, reputationMax: 100,
   servedBaselineHours: 8, churnFloorHours: 0.5, churnScale: 0.32,
-  customerSigningFee: 8, applicationCooldown: 4, feedLimit: 40,
+  customerSigningFee: 8, applicationCooldown: 4, feedLimit: 60,
   backupCost: 140, backupHourly: 2, failoverCost: 420, failoverHourly: 4,
   insolvencyLimit: -400, recoveryCash: 190, recoveryRepLoss: 12,
   offlineCapSeconds: 120, offlineProfitFraction: 0.5,
