@@ -15,7 +15,7 @@ function sanitizeDetail(d) {
   const out = {}; if (!d || typeof d !== 'object') return out;
   for (const key of ['affected', 'response', 'note']) if (typeof d[key] === 'string' && d[key]) out[key] = d[key].slice(0, 160);
   if (['resolved', 'failed', 'absorbed', 'info'].includes(d.outcome)) out.outcome = d.outcome;
-  if (typeof d.cost === 'number' && Number.isFinite(d.cost)) out.cost = Math.min(BALANCE.saveCashMax, Math.max(0, d.cost));
+  for (const key of ['cost', 'fee', 'damage']) if (typeof d[key] === 'number' && Number.isFinite(d[key])) out[key] = Math.min(BALANCE.saveCashMax, Math.max(0, d[key]));
   if (typeof d.rep === 'number' && Number.isFinite(d.rep)) out.rep = Math.min(100, Math.max(-100, d.rep));
   return out;
 }
@@ -60,7 +60,7 @@ export function validateSave(raw) {
     return model && Number.isFinite(item.remaining) && item.remaining > 0 ? [{ ...model, remaining: Math.min(model.principal, item.remaining) }] : [];
   });
   if (Array.isArray(input.eventHistory)) s.eventHistory = input.eventHistory.slice(-EVENT_RULES.historyLimit).filter(e => e && [...TRIGGERS, ...RARE_PARTS].some(t => t.id === e.trigger) && TARGETS.some(t => t.id === e.target)).map(e => ({ trigger: e.trigger, target: e.target, hour: Math.min(s.hours, bounded(e.hour)) }));
-  if (Array.isArray(input.chains)) s.chains = input.chains.slice(0, EVENT_RULES.historyLimit).filter(e => e && TRIGGERS.some(t => t.id === e.trigger)).map(e => ({ trigger: e.trigger, at: Math.min(s.hours + EVENT_RULES.chainDelayHours, bounded(e.at)) }));
+  if (Array.isArray(input.chains)) s.chains = input.chains.slice(0, EVENT_RULES.historyLimit).filter(e => e && TRIGGERS.some(t => t.id === e.trigger)).map(e => ({ trigger: e.trigger, at: Math.min(s.hours + EVENT_RULES.chainDelayHours, bounded(e.at)), ...(SEVERITIES.some(v => v.id === e.severity) ? { severity: e.severity } : {}) }));
   if (Array.isArray(input.rareSeen)) s.rareSeen = [...new Set(input.rareSeen.filter(id => RARE_PARTS.some(p => p.id === id)))].slice(0, EVENT_RULES.rareCap);
   if (typeof input.lastRareHour === 'number' && Number.isFinite(input.lastRareHour)) s.lastRareHour = Math.min(s.hours, input.lastRareHour);
   if (Array.isArray(input.feed)) s.feed = input.feed.slice(0, BALANCE.feedLimit).filter(e => e && typeof e.title === 'string' && typeof e.why === 'string').map(e => {

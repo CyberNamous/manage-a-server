@@ -1,5 +1,5 @@
 export const GAME_TITLE = 'Manage a Server';
-export const GAME_UPDATE = 'Update 1';
+export const GAME_UPDATE = 'Update 1.1';
 export const VERSION = 2; // save format version; v2 adds server condition, upgrades, books and reputation history
 export const SAVE_KEY = 'mas.save';
 export const THEME_KEY = 'mas.theme';
