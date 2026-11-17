@@ -9,3 +9,9 @@ export function gameTime(hours) {
 }
 export function moneySentence(e) { return `You earn ${money(e.revenue)}/h, spend ${money(e.costs, true)}/h, so you ${e.profit >= 0 ? 'profit' : 'lose'} ${money(Math.abs(e.profit), true)}/h.`; }
 export function goalNumber(goal, value) { return goal.format === 'money' ? money(value) : goal.format === 'percent' ? percent(value, 1) : String(Math.floor(value)); }
+export function signedMoney(value, precise = false) { return `${value >= 0 ? '+' : '−'}${money(Math.abs(value), precise)}`; }
+export function ageText(hours) { const d = Math.floor(hours / 24), h = Math.floor(hours % 24); return d ? `${d}d ${h}h` : `${h}h`; }
+export function hoursText(hours) { return `${hours < 10 ? hours.toFixed(1) : Math.round(hours)}h`; }
+export function button(action, id, label, disabled, title, className = '') {
+  return `<button data-action="${action}" data-value="${id}"${disabled ? ' disabled' : ''} title="${escapeHTML(title)}" class="${className}">${label}</button>`;
+}
