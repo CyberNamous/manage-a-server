@@ -10,7 +10,7 @@ export function takeLoan(s, id, emergency = false) {
   if (s.loans.length >= LENDING.maxLoans) return { ok: false, message: 'Repay a loan before borrowing again.' };
   const model = emergency ? { id: 'emergency', name: 'Emergency loan', principal: LENDING.emergencyPrincipal, monthlyRate: LENDING.emergencyMonthlyRate, termMonths: LENDING.emergencyTermMonths } : LOANS.find(item => item.id === id);
   if (!model) return { ok: false, message: 'Unknown loan.' };
-  s.loans.push({ ...model, remaining: model.principal }); s.cash += model.principal; s.lastLoanHour = s.hours;
+  s.loans.push({ ...model, remaining: model.principal }); s.cash += model.principal; s.books.borrowed += model.principal; s.lastLoanHour = s.hours;
   return { ok: true, message: `${model.name} funded. Repayments continue even during outages.` };
 }
 // The economy deducts principal and interest once. This updates the outstanding balance.
@@ -21,6 +21,6 @@ export function tickLoans(s, hours) {
 export function repayLoan(s, index) {
   const loan = s.loans[index];
   if (!loan || s.cash < loan.remaining) return { ok: false, message: 'You need enough cash to repay the remaining principal.' };
-  s.cash -= loan.remaining; s.loans.splice(index, 1);
+  s.cash -= loan.remaining; s.books.repaidEarly += loan.remaining; s.loans.splice(index, 1);
   return { ok: true, message: 'Loan repaid. Its hourly cost is gone.' };
 }

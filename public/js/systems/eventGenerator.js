@@ -5,6 +5,7 @@ import { LENDING } from '../data/loans.js';
 import { capacity } from './capacity.js';
 import { eligible, combinationAllowed, pick, random } from './eventHistory.js';
 import { eventWeight } from './eventWeights.js';
+import { pickAffected } from './maintenance.js';
 export function eventResponses(s, event) {
   const cap = capacity(s);
   const valid = RESPONSES.filter(item => {
@@ -37,6 +38,7 @@ export function assembleEvent(s, chain = null) {
   const baseCost = Math.ceil((EVENT_RULES.damageFloor + s.customers.length * EVENT_RULES.damagePerCustomer) * scale);
   const text = pick(s, TEMPLATES).replace('{trigger}', trigger.name).replace('{target}', target.name).replace('{twist}', twist.name);
   const event = { trigger, target, severity, twist, scale, baseCost, text, isRare, chain: Boolean(chain), responses: [] };
+  event.affected = pickAffected(s, event); // uid of the server this incident hits (or null)
   event.responses = eventResponses(s, event);
   if (isRare) { s.rareSeen.push(trigger.id); s.lastRareHour = s.hours; }
   return event;

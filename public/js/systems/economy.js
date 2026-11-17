@@ -4,6 +4,8 @@ import { NETWORKS, LOCATIONS } from '../data/network.js';
 import { EVENT_RULES } from '../data/eventParts.js';
 import { capacity } from './capacity.js';
 import { debtCost } from './loanSystem.js';
+import { fleetEffect } from './hardware.js';
+import { spend } from './ledger.js';
 import { random } from './eventHistory.js';
 export function demand(s, price = s.price, id = 'hobby') {
   const customer = customerType(id);
@@ -21,7 +23,9 @@ export function economy(s, price = s.price) {
   const rent = BALANCE.rackRent[s.tier] + (site?.rent || 0);
   const protection = (s.backups ? BALANCE.backupHourly : 0) + (s.failover ? BALANCE.failoverHourly : 0);
   const transitFactor = s.network === 'transit' && s.hours < s.priceShockUntil ? EVENT_RULES.transitShockFactor : 1;
-  const connectivity = BALANCE.lineCost + (network ? network.hourly + network.perUnit * cap.used * transitFactor : 0);
+  // Network interface upgrades trim the per-unit transit/peering charge (fleet average); fixed fees are unchanged.
+  const netSaving = 1 - fleetEffect(s, 'nic', 'netcost');
+  const connectivity = BALANCE.lineCost + (network ? network.hourly + network.perUnit * cap.used * transitFactor * netSaving : 0);
   const loans = debtCost(s), costs = power + rent + protection + connectivity + loans;
   return { revenue, contractRevenue, costs, profit: revenue - costs, power, rent, protection, connectivity, loans };
 }
@@ -39,7 +43,7 @@ export function signCustomer(s, id) {
   if (s.cash < BALANCE.customerSigningFee) return { ok: false, message: 'Keep a little cash for onboarding.' };
   s.cooldown = BALANCE.applicationCooldown;
   if (random(s) > demand(s, s.price, id)) return { ok: true, message: 'This applicant declined your price. Try again soon, or lower your rate.' };
-  s.cash -= BALANCE.customerSigningFee;
+  spend(s, 'setup', BALANCE.customerSigningFee);
   s.customers.push({ id, joined: s.hours, serial: ++s.serial, strain: 0 });
   return { ok: true, message: `${type.name} signed. Capacity and service promises are now committed.` };
 }
@@ -48,6 +52,6 @@ export function chooseInfrastructure(s, kind, id) {
   if (!['network', 'location'].includes(kind) || s[kind]) return { ok: false, message: 'This is a permanent choice for this run.' };
   const entry = (kind === 'network' ? NETWORKS : LOCATIONS).find(item => item.id === id);
   if (!entry || s.cash < entry.cost) return { ok: false, message: 'Not enough cash for this investment.' };
-  s.cash -= entry.cost; s[kind] = id;
+  spend(s, 'setup', entry.cost); s[kind] = id;
   return { ok: true, message: `${entry.name} selected permanently. Its costs and risks now apply.` };
 }
