@@ -1,1 +1,13 @@
 @keyframes led-blink{0%,65%,100%{opacity:1}66%,76%{opacity:.25}}@keyframes packet-flow{to{stroke-dashoffset:-20}}@keyframes toast-in{from{opacity:0;transform:translateY(-.5rem)}to{opacity:1;transform:translateY(0)}}@keyframes unlock-flash{0%{box-shadow:0 0 0 0 var(--green)}100%{box-shadow:0 0 0 1.5rem transparent}}@keyframes scene-in{from{opacity:.2;transform:translateY(.4rem)}to{opacity:1;transform:translateY(0)}}.scene svg{animation:scene-in .45s ease-out}.modal-layer:not([hidden]) .modal{animation:toast-in .2s ease-out}@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}.scene-led{opacity:1}}
+
+/* ===== Update 1: feedback effects (all disabled under reduced motion) ===== */
+@keyframes chip-pulse{50%{opacity:.55}}
+@keyframes led-alarm{50%{opacity:.15}}
+@keyframes unit-drop{from{opacity:0;transform:translateY(-14px)}to{opacity:1;transform:none}}
+@keyframes unit-pulse{0%{filter:drop-shadow(0 0 0 var(--scene-glow))}40%{filter:drop-shadow(0 0 7px var(--scene-glow))}100%{filter:none}}
+@keyframes unit-alert{0%,60%{filter:drop-shadow(0 0 6px var(--red))}100%{filter:none}}
+@keyframes panel-flash{0%{box-shadow:inset 0 0 0 2px var(--green)}100%{box-shadow:inset 0 0 0 2px transparent}}
+@keyframes panel-flash-red{0%{box-shadow:inset 0 0 0 2px var(--red)}100%{box-shadow:inset 0 0 0 2px transparent}}
+.unit.fx-new{animation:unit-drop .6s ease-out}.unit.fx-up,.unit.fx-done{animation:unit-pulse 1.1s ease-out}.unit.fx-alert{animation:unit-alert 1.2s ease-out}
+.scene-panel.fx-purchase,.scene-panel.fx-upgrade,.scene-panel.fx-service,.scene-panel.fx-resolved{animation:panel-flash 1s ease-out}.scene-panel.fx-fault{animation:panel-flash-red 1.1s ease-out}
+@media (prefers-reduced-motion:reduce){.unit,.scene-panel,.chip.busy,.scene-led.st-bad,.scene-led.st-busy{animation:none!important}}
