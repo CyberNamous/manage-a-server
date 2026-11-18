@@ -8,9 +8,14 @@ export const EVENT_RULES = {
   damagePerCustomer: 5, damageFloor: 10, chainDelayHours: 5,
   chainSeverity: 'serious', fineRepFraction: 0.12,
   spikeDuration: 3, spikeCapacityFactor: 0.65, transitShockFactor: 1.8,
-  outcomeHistoryLimit: 60, repairFallbackChance: 0.2,
+  outcomeHistoryLimit: 40, repairFallbackChance: 0.2,
 };
 export const TRIGGERS = [
+  {id:'flood',name:'localized flooding',tags:['technical'],weight:.65,minTier:1,effect:'outage'},
+  {id:'storm',name:'storm-damaged local utility',tags:['technical'],weight:.5,minTier:1,effect:'outage'},
+  {id:'congestion',name:'network congestion',tags:['technical'],weight:.65,minTier:1,effect:'outage'},
+  {id:'compatibility',name:'software compatibility failure',tags:['technical'],weight:.4,minTier:2,effect:'outage'},
+  {id:'opportunity',name:'commercial referral opportunity',tags:['commercial'],weight:.45,minTier:1,effect:'opportunity'},
   { id: 'hardware', name: 'hardware failure', tags: ['technical'], weight: 1.2, minTier: 1, needs: 'servers', effect: 'outage' },
   { id: 'ddos', name: 'DDoS attempt', tags: ['security'], weight: 0.5, minTier: 1, needs: 'customers', effect: 'outage' },
   { id: 'power', name: 'power interruption', tags: ['technical'], weight: 0.8, minTier: 1, effect: 'outage' },
