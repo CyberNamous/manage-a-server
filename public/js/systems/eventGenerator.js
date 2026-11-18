@@ -1,3 +1,4 @@
+import { categoryOf } from './probability.js';
 import { TRIGGERS, TARGETS, SEVERITIES, TWISTS, TEMPLATES, RARE_PARTS, EVENT_RULES } from '../data/eventParts.js';
 import { RESPONSES, RESPONSE_RULES } from '../data/responses.js';
 import { BALANCE } from '../data/tiers.js';
@@ -5,7 +6,6 @@ import { LENDING } from '../data/loans.js';
 import { capacity } from './capacity.js';
 import { eligible, combinationAllowed, pick, random } from './eventHistory.js';
 import { eventWeight } from './eventWeights.js';
-import { pickAffected } from './maintenance.js';
 export function eventResponses(s, event) {
   const cap = capacity(s);
   const valid = RESPONSES.filter(item => {
@@ -21,14 +21,8 @@ export function eventResponses(s, event) {
   const ignore = valid.find(item => item.id === 'ignore');
   return [primary, secondary, ignore].filter(Boolean).slice(0, RESPONSE_RULES.maxChoices).map(item => ({ ...item, cost: Math.ceil(event.baseCost * item.costScale) }));
 }
-// A follow-up is as severe as the incident that caused it, capped at the configured chain severity.
-// Older saved chains carry no severity and keep the previous behaviour.
-function chainSeverity(chain) {
-  const cap = SEVERITIES.find(item => item.id === EVENT_RULES.chainSeverity), original = SEVERITIES.find(item => item.id === chain.severity);
-  return original && original.scale < cap.scale ? original : cap;
-}
 export function assembleEvent(s, chain = null) {
-  const regular = TRIGGERS.filter(part => eligible(s, part) && eventWeight(s, part) > 0);
+  const regular = TRIGGERS.filter(part => eligible(s, part) && eventWeight(s, part) > 0 && s.hours-(s.categoryLast?.[categoryOf({trigger:part})]??-100)>=1.5);
   const rare = RARE_PARTS.filter(part => eligible(s, part) && !s.rareSeen.includes(part.id));
   const canRare = !chain && rare.length && s.rareSeen.length < EVENT_RULES.rareCap && s.hours - s.lastRareHour >= EVENT_RULES.rareCooldownHours;
   const isRare = Boolean(canRare && random(s) < EVENT_RULES.rareChance);
@@ -38,13 +32,12 @@ export function assembleEvent(s, chain = null) {
   const targets = TARGETS.filter(part => eligible(s, part) && part.tags.some(tag => trigger.tags.includes(tag)) && (chain || combinationAllowed(s, trigger.id, part.id)));
   if (!targets.length) return null;
   const target = pick(s, targets);
-  const severity = chain ? chainSeverity(chain) : pick(s, SEVERITIES, item => item.weight);
+  const severity = chain ? SEVERITIES.find(item => item.id === EVENT_RULES.chainSeverity) : pick(s, SEVERITIES, item => item.weight);
   const twist = pick(s, TWISTS.filter(part => eligible(s, part) && part.tags.some(tag => tag === 'any' || trigger.tags.includes(tag))));
   const scale = severity.scale * twist.scale * target.scale;
   const baseCost = Math.ceil((EVENT_RULES.damageFloor + s.customers.length * EVENT_RULES.damagePerCustomer) * scale);
   const text = pick(s, TEMPLATES).replace('{trigger}', trigger.name).replace('{target}', target.name).replace('{twist}', twist.name);
-  const event = { trigger, target, severity, twist, scale, baseCost, text, isRare, chain: Boolean(chain), responses: [] };
-  event.affected = pickAffected(s, event); // uid of the server this incident hits (or null)
+  const event = { trigger, target, severity, twist, scale, baseCost, text, isRare, chain: Boolean(chain), parentIncidentId:chain?.parentIncidentId||null, responses: [] };
   event.responses = eventResponses(s, event);
   if (isRare) { s.rareSeen.push(trigger.id); s.lastRareHour = s.hours; }
   return event;

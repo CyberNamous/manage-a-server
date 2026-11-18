@@ -31,6 +31,6 @@ export function varietyWeight(s, id) {
   return 1 / (1 + count * EVENT_RULES.varietyPenalty);
 }
 export function recordEvent(s, event) {
-  s.eventHistory.push({ trigger: event.trigger.id, target: event.target.id, hour: s.hours });
+  s.eventHistory.push({ trigger: event.trigger.id, target: event.target.id, hour: s.hours,incidentId:event.incidentId,chain:event.chain,parentIncidentId:event.parentIncidentId||null,status:'awaiting decision',title:event.trigger.name,category:event.category,scope:event.scope,district:event.district });
   s.eventHistory = s.eventHistory.slice(-EVENT_RULES.historyLimit);
 }
