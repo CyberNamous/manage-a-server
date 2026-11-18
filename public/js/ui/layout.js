@@ -1,6 +1,6 @@
-let activeTab = 'build';
+let activeTab = 'overview';
 export function selectTab(tab, focus = false) {
-  if (!['build', 'customers', 'events', 'goals'].includes(tab)) return;
+  if (!['overview','build','customers','events','goals','staff','facilities','region','rivals','finance','analytics'].includes(tab)) return;
   activeTab = tab;
   for (const panel of document.querySelectorAll('[data-tab]')) panel.classList.toggle('tab-active', panel.dataset.tab === tab);
   for (const button of document.querySelectorAll('[data-action="tab"]')) button.setAttribute('aria-pressed', String(button.dataset.value === tab));
