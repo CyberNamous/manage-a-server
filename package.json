@@ -1,0 +1,1 @@
+{"name":"manage-a-server","version":"2.1.0","private":true,"type":"module","scripts":{"test":"node --test tests/*.test.js","dev":"npx wrangler dev","deploy":"npx wrangler deploy"}}
