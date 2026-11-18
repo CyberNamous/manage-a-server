@@ -1,29 +1,37 @@
+import { bookOperation,transact } from './systems/finance.js';
+import { tickManagement } from './systems/management.js';
+import { tickEnvironment } from './systems/environment.js';
+import { tickRivals } from './systems/rivals.js';
 import { TICK_MS, MAX_FRAME_MS } from './config.js';
 import { BALANCE } from './data/tiers.js';
 import { state, addFeed } from './state.js';
 import { economy } from './systems/economy.js';
 import { tickReputation } from './systems/reputation.js';
-import { tickMaintenance } from './systems/maintenance.js';
-import { recordOperating } from './systems/ledger.js';
 import { tickLoans } from './systems/loanSystem.js';
 import { checkUnlocks } from './systems/unlocks.js';
 import { tickEvents } from './systems/eventSystem.js';
-export function simulate(s, seconds) {
+export function simulate(s,seconds){
+ if(!Number.isFinite(seconds)||seconds<=0||s.activeEvent)return null;
+ s.pendingSeconds=(s.pendingSeconds||0)+seconds;let unlocked=null;
+ while(s.pendingSeconds>=.25-1e-9&&!s.activeEvent){s.pendingSeconds=Math.max(0,s.pendingSeconds-.25);unlocked=step(s,.25)||unlocked;}
+ if(s.activeEvent)s.pendingSeconds=0;return unlocked;
+}
+function step(s, seconds) {
   if (s.activeEvent) return null;
   const hours = seconds * BALANCE.gameHoursPerSecond;
   const money = economy(s);
-  s.cash += money.profit * hours; s.totalEarned += money.revenue * hours;
-  recordOperating(s, money, hours); // revenue and each operating cost, recorded once, for the finance report
+  bookOperation(s,money,hours); s.totalEarned += money.revenue * hours;
+  tickLoans(s, hours); tickReputation(s, hours);
   s.hours += hours; s.cooldown = Math.max(0, s.cooldown - seconds);
-  for (const server of s.servers) server.age += hours;
-  tickMaintenance(s, hours); tickLoans(s, hours); tickReputation(s, hours);
+  tickManagement(s,hours);tickEnvironment(s);tickRivals(s);
+  if(s.hours+1e-8>=s.nextAnalyticsHour){s.analytics.push({hour:s.hours,cash:s.cash,revenue:money.revenue,costs:money.costs,reputation:s.reputation,customers:s.customers.length,service:money.contractRevenue?money.revenue/money.contractRevenue:1});s.analytics=s.analytics.slice(-96);s.nextAnalyticsHour+=1;}
   if (s.cash < BALANCE.insolvencyLimit) {
-    s.books.restructured += BALANCE.recoveryCash - s.cash; // keeps the books reconcilable with cash
-    s.cash = BALANCE.recoveryCash; s.loans = []; s.reputation = Math.max(0, s.reputation - BALANCE.recoveryRepLoss);
+    transact(s,BALANCE.recoveryCash-s.cash,'recovery','Restructuring reserve'); s.loans = []; s.reputation = Math.max(0, s.reputation - BALANCE.recoveryRepLoss);
     s.customers = s.customers.filter(client => client.id === 'hobby');
     // Recovery sheds expensive contracts, leases and excess hardware, rather than trapping the run in debt.
     s.servers = s.servers.slice(0, 1); s.backups = false; s.failover = false;
     s.network = null; s.location = null; s.tier = 1; s.bankruptcies++;
+    s.staff=[];s.buildings=[];s.facilities=[];s.districts=['local'];s.selectedDistrict='local';s.servers[0].district='local';s.servers[0].outageUntil=0;s.servers[0].maintenanceUntil=0;s.outageUntil=0;s.trafficUntil=0;s.priceShockUntil=0;s.recoveryUntil=s.hours+1;
     addFeed(s, 'Restructured back to a garage', 'Why: your cash fell below the safety limit. Debt and leases were cleared; large contracts and excess hardware were surrendered. You can rebuild.', 'warning');
   }
   const unlocked = checkUnlocks(s); tickEvents(s);
@@ -34,7 +42,7 @@ export function catchUp(s, elapsedSeconds) {
   const seconds = Math.min(BALANCE.offlineCapSeconds, elapsedSeconds);
   // No offline losses, aging, random incidents or loan-clock drift. A conservative hosting stipend only.
   const gain = Math.max(0, economy(s).profit) * seconds * BALANCE.gameHoursPerSecond * BALANCE.offlineProfitFraction;
-  s.cash += gain; s.books.stipend += gain;
+  transact(s,gain,'offline','Away reserve (half-rate positive profit only)');
   if (gain > 0) addFeed(s, `Away reserve: $${gain.toFixed(0)}`, 'Why: at most two minutes of positive hosting profit is credited at half rate. There are no offline incidents, losses, or unattended repayments.', 'gain');
   return gain;
 }
